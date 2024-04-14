@@ -36,8 +36,8 @@ export const styles = StyleSheet.create({
     height: 80,
   },
   mapMarkerContainer: {
-    width: 90,
-    height: 40,
+    width: 60,
+    height: 20,
     backgroundColor: "#F24F00",
     // flexDirection: "column",
     borderRadius: 8,
@@ -56,6 +56,6 @@ export const styles = StyleSheet.create({
     // flex: 1,
     color: "#FFF",
     fontSize: 11,
-    lineHeight: 23,
+    // lineHeight: 23,
   },
 });

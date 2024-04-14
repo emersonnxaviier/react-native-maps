@@ -1,11 +1,14 @@
-import {
-  getCurrentPositionAsync,
-  LocationObject,
-  requestForegroundPermissionsAsync,
-} from "expo-location";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { View, Text, Button, SafeAreaView } from "react-native";
 import MapView, { Marker } from "react-native-maps";
+import {
+  getCurrentPositionAsync,
+  LocationAccuracy,
+  LocationObject,
+  requestForegroundPermissionsAsync,
+  watchPositionAsync,
+} from "expo-location";
+import { styles } from "../Teste/styles";
 
 type PropT = {
   id: number;
@@ -31,15 +34,51 @@ function calcDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
 
 export const Home = () => {
   const [orders, setOrders] = useState([
-    { id: 1, latitude: -9.375021, longitude: -38.242406 },
-    { id: 2, latitude: -9.4445568, longitude: -38.2162545 },
-    { id: 3, latitude: -9.378827, longitude: -38.228829 },
-    { id: 4, latitude: -9.3989977, longitude: -38.2197148 },
-    { id: 5, latitude: -9.408597, longitude: -38.225825 },
+    {
+      id: 1,
+      latitude: -9.375021,
+      longitude: -38.242406,
+      rua: "Rua teste",
+      numero: "38 A",
+      bairro: "Centro",
+    },
+    {
+      id: 2,
+      latitude: -9.4445568,
+      longitude: -38.2162545,
+      rua: "Rua teste",
+      numero: "38 A",
+      bairro: "Centro",
+    },
+    {
+      id: 3,
+      latitude: -9.378827,
+      longitude: -38.228829,
+      rua: "Rua teste",
+      numero: "38 A",
+      bairro: "Centro",
+    },
+    {
+      id: 4,
+      latitude: -9.3989977,
+      longitude: -38.2197148,
+      rua: "Rua teste",
+      numero: "38 A",
+      bairro: "Centro",
+    },
+    {
+      id: 5,
+      latitude: -9.408597,
+      longitude: -38.225825,
+      rua: "Rua teste",
+      numero: "38 A",
+      bairro: "Centro",
+    },
   ]);
   const [currentLocation, setCurrentLocation] = useState<LocationObject | null>(
     null
   );
+  const mapRef = useRef<MapView>(null);
 
   // SOLICITA A PERMISSÃO PARA USO DA LOCALIZAÇÃO NO APP
   async function requestLocationPermission() {
@@ -50,10 +89,6 @@ export const Home = () => {
       setCurrentLocation(currentPosition);
     }
   }
-
-  useEffect(() => {
-    requestLocationPermission();
-  }, []);
 
   // Função para classificar os pedidos com base na distância
   const sortOrdersByDistance = () => {
@@ -101,48 +136,87 @@ export const Home = () => {
     return nearestOrder;
   };
 
+  useEffect(() => {
+    requestLocationPermission();
+  }, []);
+
+  // vai verifica minha localização num determinado perido para atualizar o ponto no mapa
+  useEffect(() => {
+    watchPositionAsync(
+      {
+        accuracy: LocationAccuracy.Highest,
+        timeInterval: 3000,
+        distanceInterval: 1,
+      },
+      (response) => {
+        setCurrentLocation(response);
+        mapRef.current?.animateCamera({
+          pitch: 80,
+          center: response.coords,
+        });
+      }
+    );
+  }, []);
+
   return (
     <SafeAreaView style={{ flex: 1 }}>
-      {currentLocation && (
-        <MapView
-          style={{ flex: 1 }}
-          initialRegion={{
-            latitude: currentLocation.coords.latitude,
-            longitude: currentLocation.coords.latitude,
-            latitudeDelta: 0.0922,
-            longitudeDelta: 0.0421,
-          }}
-        >
-          {orders.map((order) => (
-            <Marker
-              key={order.id}
-              coordinate={{
-                latitude: order.latitude,
-                longitude: order.longitude,
+      <View style={styles.container}>
+        <Text style={styles.title}> Olá usuário. </Text>
+        <Text style={styles.description}>
+          Visualize no mapa os pontos de entrega.
+        </Text>
+        <View style={styles.mapContainer}>
+          {currentLocation && (
+            <MapView
+              style={styles.map}
+              ref={mapRef}
+              loadingEnabled
+              initialRegion={{
+                latitude: currentLocation.coords.latitude,
+                longitude: currentLocation.coords.latitude,
+                latitudeDelta: 0.005,
+                longitudeDelta: 0.005,
               }}
-              title={`Pedido ${order.id}`}
-            />
-          ))}
+            >
+              <Marker
+                coordinate={{
+                  latitude: currentLocation.coords.latitude,
+                  longitude: currentLocation.coords.longitude,
+                }}
+                title="Sua Localização"
+                pinColor="blue"
+              />
 
-          <Marker
-            coordinate={{
-              latitude: currentLocation.coords.latitude,
-              longitude: currentLocation.coords.longitude,
-            }}
-            title="Sua Localização"
-            pinColor="blue"
-          />
-        </MapView>
-      )}
-      <Button
-        title="Classificar Pedidos por Distância"
-        onPress={sortOrdersByDistance}
-        color="#F24F00"
-      />
-      <Text style={{ marginTop: 10, marginBottom: 10, textAlign: "center" }}>
-        Pedido mais próximo:{" "}
-        {getNearestOrder() ? `Pedido ${getNearestOrder()?.id}` : "Nenhum"}
-      </Text>
+              {orders.map((order) => (
+                <Marker
+                  key={order.id}
+                  coordinate={{
+                    latitude: order.latitude,
+                    longitude: order.longitude,
+                  }}
+                  title={order.rua + ", " + order.numero + ", " + order.bairro}
+                >
+                  <View style={styles.mapMarkerContainer}>
+                    <Text style={styles.mapMarkerTitle}>
+                      {" "}
+                      Pedido {order.id}{" "}
+                    </Text>
+                  </View>
+                </Marker>
+              ))}
+            </MapView>
+          )}
+        </View>
+        <Text style={{ marginTop: 10, marginBottom: 10, textAlign: "center" }}>
+          Pedido mais próximo:{" "}
+          {getNearestOrder() ? `Pedido ${getNearestOrder()?.id}` : "Nenhum"}
+        </Text>
+        <Button
+          title="Classificar Pedidos por Distância"
+          onPress={sortOrdersByDistance}
+          color="#F24F00"
+        />
+      </View>
     </SafeAreaView>
   );
 };
